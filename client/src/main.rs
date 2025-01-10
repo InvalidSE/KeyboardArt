@@ -1,6 +1,9 @@
-use std::error::Error;
+use std::{error::Error, io};
 use openrgb::{data::Color, OpenRGB};
+extern crate websocket;
+use websocket::client::ClientBuilder;
 
+const CONNECTION: &'static str = "ws://127.0.0.1:3000";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -18,21 +21,42 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    println!("controller: {:#?}", (client.get_controller(0).await?).zones);
-    println!("controller: {:#?}", (client.get_controller(0).await?).colors); 
+    // println!("controller: {:#?}", (client.get_controller(0).await?).zones);
+    // println!("controller: {:#?}", (client.get_controller(0).await?).colors); 
 
-    let red = Color::new(255, 255, 255);
+    // there will be a json 107 long rgb array that will be read in and used to set the colors of the keyboard, sent from teh websocket server
+
+    // let mut ws_client = ClientBuilder::new(CONNECTION)
+    //     .unwrap()
+    //     .connect_insecure()
+    //     .unwrap();
 
     let mut kb_colors = vec![Color::new(0, 0, 0); 107];
-    for led in 0..107 {
-        kb_colors[led] = Color::new((led as u8)*2,(led as u8)*2, (led as u8)*2);
-    }
-    // kb_colors[0] = Color::new(255, 0, 0);
+
+    let mut input_string = String::new();
 
     loop {
-        kb_colors.rotate_right(1);
-        client.update_leds(0, kb_colors.clone()).await?;
-        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        // let msg = ws_client.recv_message().unwrap();
+        // if msg.is_text() {
+        //     let text = msg.into_text().unwrap();
+        //     let rgb: Vec<&str> = text.split(",").collect();
+        //     for i in 0..107 {
+        //         kb_colors[i] = Color::new(rgb[i].parse::<u8>().unwrap(), rgb[i+1].parse::<u8>().unwrap(), rgb[i+2].parse::<u8>().unwrap());
+        //         client.update_leds(0, kb_colors.clone()).await?;
+        //     }
+        // }
+
+        // light up every key in sequence
+        for i in 0..107 {
+            kb_colors[i] = Color::new(255, 0, 0);
+            client.update_leds(0, kb_colors.clone()).await?;
+            kb_colors[i] = Color::new(100, 0, 100);
+
+            io::stdin().read_line(&mut input_string).unwrap();
+
+            // tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        }
+
     }
 
 }
